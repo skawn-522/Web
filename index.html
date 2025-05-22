@@ -3,1086 +3,378 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STT 결과물 비교</title>
+    <title>텍스트 파일 비교 (B파일 내용 동기화)</title>
     <style>
-        body {
-            font-family: 'Malgun Gothic', sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-        }
-        .container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-        .file-input {
-            margin-bottom: 15px;
-        }
-        .file-input label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        .file-input input[type="file"] {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .format-selector {
-            margin-bottom: 15px;
-            padding: 10px;
-            background-color: #f0f8ff;
-            border-radius: 4px;
-            border: 1px solid #b8d4f5;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .format-selector legend {
-            font-weight: bold;
-            padding: 0 5px;
-        }
-        .format-options-container {
-            display: flex;
-            justify-content: center;
-            width: 100%;
-            margin-top: 5px;
-        }
-        .format-option {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 0 20px;
-            text-align: center;
-        }
-        .format-option input[type="radio"] {
-            margin-bottom: 5px;
-        }
-        .format-option label {
-            font-size: 0.9em;
-            font-weight: normal;
-        }
-        .output-format-selector {
-            margin-top: 20px;
-            margin-bottom: 15px;
-            padding: 10px;
-            background-color: #fff3e0;
-            border-radius: 4px;
-            border: 1px solid #ffe0b2;
-        }
-        .output-format-selector legend {
-            font-weight: bold;
-            padding: 0 5px;
-            color: #e65100;
-        }
-        .output-format-options {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-top: 5px;
-        }
-        .output-format-option {
-            display: flex;
-            align-items: center;
-        }
-        .output-format-option input[type="radio"] {
-            margin-right: 5px;
-        }
-        .output-format-option label {
-            font-size: 0.9em;
-        }
-        .process-btn {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            width: 100%;
-            margin-top: 10px;
-        }
-        .process-btn:hover {
-            background-color: #45a049;
-        }
-        .process-btn:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        .status-container {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 4px;
-            background-color: #f8f8f8;
-            border: 1px solid #ddd;
-        }
-        .status {
-            margin-bottom: 10px;
-            font-weight: bold;
-        }
-        .processing {
-            color: #FF9800;
-        }
-        .success {
-            color: #4CAF50;
-        }
-        .error {
-            color: #F44336;
-        }
-        .log {
-            height: 150px;
-            overflow-y: auto;
-            background-color: #333;
-            color: #fff;
-            padding: 10px;
-            border-radius: 4px;
-            font-family: monospace;
-            margin-bottom: 15px;
-        }
-        .download-btn {
-            background-color: #2196F3;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            width: 100%;
-            margin-top: 15px;
-            display: none;
-        }
-        .download-btn:hover {
-            background-color: #0b7dda;
-        }
-        .download-container {
-            margin-top: 15px;
-        }
-        .direct-copy-btn {
-            background-color: #673AB7;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            width: 100%;
-            margin-top: 10px;
-            display: none;
-        }
-        .direct-copy-btn:hover {
-            background-color: #5E35B1;
-        }
-        .info-box {
-            background-color: #e8f5e9;
-            border-left: 4px solid #4CAF50;
-            padding: 10px 15px;
-            margin-bottom: 15px;
-            border-radius: 0 4px 4px 0;
-        }
-        .info-box h3 {
-            margin-top: 0;
-            margin-bottom: 5px;
-            color: #2E7D32;
-        }
-        .info-box p {
-            margin: 5px 0;
-        }
-        .excel-hint {
-            background-color: #fff3e0;
-            border-left: 4px solid #ff9800;
-            padding: 10px 15px;
-            margin-top: 15px;
-            border-radius: 0 4px 4px 0;
-            display: none;
-        }
-        .excel-hint h4 {
-            margin-top: 0;
-            margin-bottom: 5px;
-            color: #e65100;
-        }
-        .excel-hint ul {
-            margin: 5px 0;
-            padding-left: 20px;
-        }
-        .tooltip {
-            position: relative;
-            display: inline-block;
-            border-bottom: 1px dotted #666;
-            cursor: help;
-        }
-        .tooltip .tooltiptext {
-            visibility: hidden;
-            width: 240px;
-            background-color: #555;
-            color: #fff;
-            text-align: center;
-            border-radius: 6px;
-            padding: 5px;
-            position: absolute;
-            z-index: 1;
-            bottom: 125%;
-            left: 50%;
-            margin-left: -120px;
-            opacity: 0;
-            transition: opacity 0.3s;
-            font-size: 0.85em;
-        }
-        .tooltip:hover .tooltiptext {
-            visibility: visible;
-            opacity: 1;
-        }
+        body { font-family: 'Malgun Gothic', sans-serif; margin: 20px; background-color: #f4f4f4; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; text-align: center; }
+        .file-input-group { margin-bottom: 20px; }
+        .file-input-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .file-input-group input[type="file"] { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
+        .button-group { text-align: center; margin-top: 20px; }
+        .button-group button { background-color: #007bff; color: white; border: none; padding: 10px 20px; font-size: 16px; margin: 4px 2px; cursor: pointer; border-radius: 4px; }
+        .button-group button:hover { background-color: #0056b3; }
+        .button-group button:disabled { background-color: #ccc; cursor: not-allowed; }
+        #previewTable { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
+        #previewTable th, #previewTable td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 0.85em; word-break: break-all; overflow-wrap: break-word; }
+        #previewTable th { background-color: #f0f0f0; }
+        #status { margin-top: 15px; font-style: italic; color: #555; }
+        .col-speaker { width: 10%; }
+        .col-content { width: 35%; }
+        .col-status { width: 20%; }
+        .skipped-row td { background-color: #f9f9f9; color: #999; } /* 건너뛴 B행 스타일 */
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>인터뷰 파일 비교기 v2</h1>
-        
-        <div class="info-box">
-            <h3>마지막 업데이트 20250520.v1</h3>
-            <p>첫 번째 파일의 형식을 선택(ㄱ,ㄴ,ㄷ로 구분된 건 STT형식 진행자 > 로 구분된 건 라디오 원문형식), 출력 형식도 CSV 또는 Excel 최적화 형식으로 선택할 수 있습니다. CSV는 노션에서 열어서 사용할 수 있고 Excel은 그 파일 안에서 수정 및 비교 가능합니다.</p>
+        <h1>텍스트 파일 비교 (B파일 내용 동기화)</h1>
+
+        <div class="file-input-group">
+            <label for="file1Input">첫 번째 텍스트 파일 (이름>내용 형식)</label>
+            <input type="file" id="file1Input" accept=".txt">
         </div>
-        
-        <div class="file-input">
-            <label for="file1">첫 번째 인터뷰 파일:</label>
-            <input type="file" id="file1" accept=".txt">
-            
-            <fieldset class="format-selector">
-                <legend>첫 번째 파일 형식 선택:</legend>
-                <div class="format-options-container">
-                    <div class="format-option">
-                        <input type="radio" id="formatStt" name="fileFormat" value="stt" checked>
-                        <label for="formatStt">STT 형식<br>(탭으로 구분, 예: "화자[탭]내용")</label>
-                    </div>
-                    <div class="format-option">
-                        <input type="radio" id="formatRadio" name="fileFormat" value="radio">
-                        <label for="formatRadio">라디오 원문 형식<br>('> '로 구분, 예: "화자 > 내용")</label>
-                    </div>
-                </div>
-            </fieldset>
+
+        <div class="file-input-group">
+            <label for="file2Input">두 번째 텍스트 파일 (이름>내용 형식)</label>
+            <input type="file" id="file2Input" accept=".txt">
         </div>
-        
-        <div class="file-input">
-            <label for="file2">두 번째 인터뷰 파일 ('> '로 구분된 형식):</label>
-            <input type="file" id="file2" accept=".txt">
+
+        <div class="button-group">
+            <button id="processButton" disabled>데이터 처리 및 미리보기</button>
+            <button id="downloadCsvButton" disabled>CSV 다운로드</button>
         </div>
-        
-        <fieldset class="output-format-selector">
-            <legend>출력 파일 형식 선택:</legend>
-            <div class="output-format-options">
-                <div class="output-format-option">
-                    <input type="radio" id="outputCsv" name="outputFormat" value="csv">
-                    <label for="outputCsv">기본 CSV</label>
-                </div>
-                <div class="output-format-option">
-                    <input type="radio" id="outputExcel" name="outputFormat" value="excel" checked>
-                    <label for="outputExcel">Excel 최적화 형식 
-                        <span class="tooltip">ⓘ
-                            <span class="tooltiptext">열 너비(Anum/Bnum: 3.5, Text: 60), 자동 줄바꿈, Status 드롭다운 적용</span>
-                        </span>
-                    </label>
-                </div>
-            </div>
-        </fieldset>
-        
-        <button id="processBtn" class="process-btn">파일 비교하기</button>
-        
-        <div class="status-container">
-            <div class="status" id="statusText">준비 완료</div>
-            <div class="log" id="logArea"></div>
-        </div>
-        
-        <div class="download-container">
-            <a id="downloadLink" class="download-btn" href="#">결과 파일 다운로드</a>
-            <button id="directCopyBtn" class="direct-copy-btn">결과 내용 복사하기</button>
-        </div>
-        
-        <div id="excelHint" class="excel-hint">
-            <h4>Excel에서 CSV 파일 열기 팁</h4>
-            <ul>
-                <li>Anum과 Bnum의 열 너비는 3.5로 자동 설정됩니다.</li>
-                <li>Text A와 Text B의 열 너비는 60으로 자동 설정됩니다.</li>
-                <li>Text A와 B에는 자동 줄 바꿈이 적용됩니다.</li>
-                <li>Status 열은 필터링 버튼을 클릭하여 드롭다운으로 사용할 수 있습니다.</li>
-            </ul>
+
+        <div id="status"></div>
+
+        <h2>미리보기</h2>
+        <div style="max-height: 600px; overflow-y: auto;">
+            <table id="previewTable">
+                <thead>
+                    <tr>
+                        <th class="col-speaker">파일1 화자</th>
+                        <th class="col-content">파일1 내용</th>
+                        <th class="col-speaker">파일2 화자</th>
+                        <th class="col-content">파일2 내용</th>
+                        <th class="col-status">Status (B파일 기준)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- 데이터가 여기에 동적으로 삽입됩니다 -->
+                </tbody>
+            </table>
         </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const file1Input = document.getElementById('file1');
-            const file2Input = document.getElementById('file2');
-            const formatStt = document.getElementById('formatStt');
-            const formatRadio = document.getElementById('formatRadio');
-            const outputCsv = document.getElementById('outputCsv');
-            const outputExcel = document.getElementById('outputExcel');
-            const processBtn = document.getElementById('processBtn');
-            const statusText = document.getElementById('statusText');
-            const logArea = document.getElementById('logArea');
-            const downloadLink = document.getElementById('downloadLink');
-            const directCopyBtn = document.getElementById('directCopyBtn');
-            const excelHint = document.getElementById('excelHint');
-            
-            // 생성된 CSV 데이터 저장 변수
-            let generatedCsvContent = '';
-            
-            // 최대 단위 길이 설정
-            const MAX_UNIT_LENGTH = 150;
-            
-            // 로그 추가 함수
-            function logMessage(message) {
-                const timestamp = new Date().toLocaleTimeString();
-                logArea.innerHTML += `<div>[${timestamp}] ${message}</div>`;
-                logArea.scrollTop = logArea.scrollHeight;
+        // 비교 및 동기화 관련 상수
+        const SIMILARITY_THRESHOLD = 0.7; // 대체어 판단을 위한 유사도 임계값 (getStatus 내부에서 사용)
+        const MAX_DIFF_WORDS_FOR_SUBSTITUTION = 3;
+        const MAX_DIFF_RATIO_FOR_SUBSTITUTION = 0.4;
+
+        const SYNC_SEARCH_LIMIT = 5; // 동기화 시 B파일에서 탐색할 최대 라인 수
+        const SYNC_MIN_SIMILARITY_FOR_MATCH = 0.6; // 동기화 매칭을 위한 최소 유사도 (이 값 이상일 때 건너뛰고 매칭)
+                                                 // 너무 낮으면 관련 없는 내용과 매칭될 수 있음.
+        const SYNC_STATUS_PRIORITY = { // 동기화 시 우선순위가 높은 상태 (숫자가 낮을수록 좋음)
+            "동일 (B 기준)": 1,
+            "표기/구두점 변경 (B 기준)": 2,
+            "대체어 사용 (B 기준)": 3,
+            "B에 단어 추가됨": 4,
+            "B에서 단어 삭제됨": 5,
+            // 유사하나 복합적 차이 등은 유사도로 판단
+        };
+
+
+        let file1Data = [];
+        let file2Data = [];
+        let combinedData = [];
+
+        const file1InputElement = document.getElementById('file1Input');
+        const file2InputElement = document.getElementById('file2Input');
+        const processButton = document.getElementById('processButton');
+        const downloadCsvButton = document.getElementById('downloadCsvButton');
+        const previewTableBody = document.querySelector('#previewTable tbody');
+        const statusDiv = document.getElementById('status');
+
+        file1InputElement.addEventListener('change', (event) => handleFile(event, 'file1'));
+        file2InputElement.addEventListener('change', (event) => handleFile(event, 'file2'));
+        processButton.addEventListener('click', processFiles);
+        downloadCsvButton.addEventListener('click', downloadCSV);
+
+        function handleFile(event, fileType) { /* 이전과 동일 */ 
+            const file = event.target.files[0];
+            if (!file) { statusDiv.textContent = `${fileType === 'file1' ? '첫 번째' : '두 번째'} 파일이 선택되지 않았습니다.`; return; }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                const parsedData = parseRawFileContent(content);
+                if (fileType === 'file1') file1Data = parsedData;
+                else file2Data = parsedData;
+                statusDiv.textContent = `${fileType === 'file1' ? '첫 번째' : '두 번째'} 파일 로드 완료.`;
+                checkFilesReady();
+            };
+            reader.onerror = () => { statusDiv.textContent = `${fileType === 'file1' ? '첫 번째' : '두 번째'} 파일 읽기 오류.`; }
+            reader.readAsText(file, 'UTF-8');
+        }
+        function parseRawFileContent(content) { /* 이전과 동일 */
+             return content.split('\n').map(line => {
+                line = line.trim();
+                if (!line) return { speaker: '', content: '' };
+                const parts = line.split('>');
+                return { speaker: parts[0]?.trim() || '', content: parts[1]?.trim() || '' };
+            }).filter(item => item.speaker || item.content);
+        }
+        function checkFilesReady() { /* 이전과 동일 (다운로드 버튼 등 초기화 추가) */
+            if (file1InputElement.files.length > 0 && file2InputElement.files.length > 0) {
+                processButton.disabled = false;
+                statusDiv.textContent = '두 파일이 준비되었습니다. "데이터 처리" 버튼을 누르세요.';
+            } else {
+                processButton.disabled = true;
+                downloadCsvButton.disabled = true;
+                previewTableBody.innerHTML = '';
+                combinedData = [];
             }
-            
-            // 상태 업데이트 함수
-            function updateStatus(message, type) {
-                statusText.textContent = message;
-                statusText.className = 'status ' + type;
-            }
-            
-            // 파일 내용 읽기 함수
-            function readFile(file) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = (event) => resolve(event.target.result);
-                    reader.onerror = (error) => reject(error);
-                    reader.readAsText(file);
-                });
-            }
-            
-            // STT 파일에서 내용 추출 (파일 A - 탭 구분)
-            function extractContentLinesStt(content) {
-                const lines = [];
-                const contentLines = content.split('\n');
-                
-                for (let line of contentLines) {
-                    line = line.trim();
-                    if (line.includes('\t')) {
-                        const parts = line.split('\t', 2);
-                        if (parts.length > 1) {
-                            lines.push(parts[1].trim());
-                        }
-                    }
+        }
+
+        function normalizeForExactMatchAndInclusion(str) { /* 이전과 동일 */
+            if (typeof str !== 'string') return "";
+            return str.toLowerCase().replace(/\s+/g, "").replace(/[.,?!~㈜\(\)\[\]\{\}'"“”‘’:]/g, "");
+        }
+        function normalizeForSimilarityAndTokenization(str) { /* 이전과 동일 */
+            if (typeof str !== 'string') return "";
+            return str.toLowerCase().replace(/[.,?!~㈜\(\)\[\]\{\}'"“”‘’:]/g, "").replace(/\s+/g, " ").trim();
+        }
+        function levenshteinDistance(s1, s2) { /* 이전과 동일 */
+            if (!s1 && !s2) return 0;
+            if (!s1) return s2 ? s2.length : 0;
+            if (!s2) return s1.length;
+            const track = Array(s2.length + 1).fill(null).map(() => Array(s1.length + 1).fill(null));
+            for (let i = 0; i <= s1.length; i += 1) track[0][i] = i;
+            for (let j = 0; j <= s2.length; j += 1) track[j][0] = j;
+            for (let j = 1; j <= s2.length; j += 1) {
+                for (let i = 1; i <= s1.length; i += 1) {
+                    const indicator = s1[i - 1] === s2[j - 1] ? 0 : 1;
+                    track[j][i] = Math.min(track[j][i - 1] + 1, track[j - 1][i] + 1, track[j - 1][i - 1] + indicator);
                 }
-                
-                if (lines.length === 0) {
-                    logMessage("경고: STT 파일에서 내용을 추출하지 못했습니다. 탭(\\t)으로 구분된 형식인지 확인해주세요.");
-                }
-                
-                return lines;
             }
-            
-            // 라디오 원문 형식에서 내용 추출 (파일 A/B - '> ' 구분)
-            function extractContentLinesRadio(content) {
-                const lines = [];
-                const contentLines = content.split('\n');
-                
-                for (let line of contentLines) {
-                    line = line.trim();
-                    if (line.includes(' > ')) {
-                        const parts = line.split(' > ', 2);
-                        if (parts.length > 1) {
-                            lines.push(parts[1].trim());
-                        }
-                    }
-                }
-                
-                if (lines.length === 0) {
-                    logMessage("경고: 파일에서 내용을 추출하지 못했습니다. '> '로 구분된 형식인지 확인해주세요.");
-                }
-                
-                return lines;
-            }
-            
-            // 긴 텍스트 단위 분할 함수
-            function splitLongUnit(unitText, originalEndingPunctuation) {
-                const splitUnits = [];
-                let currentPos = 0;
-                const textLen = unitText.length;
-                
-                while (currentPos < textLen) {
-                    const remainingLen = textLen - currentPos;
-                    
-                    if (remainingLen <= MAX_UNIT_LENGTH) {
-                        let chunk = unitText.substring(currentPos).trim();
-                        if (chunk) {
-                            if (originalEndingPunctuation) {
-                                if (!chunk.endsWith(originalEndingPunctuation)) {
-                                    chunk += originalEndingPunctuation;
-                                }
-                            } else if (!chunk.endsWith('.') && !chunk.endsWith('?')) {
-                                chunk += ".";
-                            }
-                            splitUnits.push(chunk);
-                        }
-                        break;
-                    }
-                    
-                    let chunkPotentialEnd = currentPos + MAX_UNIT_LENGTH;
-                    let splitIdx = unitText.lastIndexOf(' ', chunkPotentialEnd);
-                    
-                    if (splitIdx !== -1 && splitIdx > currentPos) {
-                        const chunk = unitText.substring(currentPos, splitIdx).trim();
-                        currentPos = splitIdx + 1;
-                        if (chunk) {
-                            splitUnits.push(chunk);
-                        }
+            return track[s2.length][s1.length];
+        }
+        function calculateSimilarity(s1, s2) { /* 이전과 동일 */
+            if ((!s1 || s1.length === 0) && (!s2 || s2.length === 0)) return 1;
+            if (!s1 || s1.length === 0 || !s2 || s2.length === 0) return 0;
+            const maxLength = Math.max(s1.length, s2.length);
+            if (maxLength === 0) return 1;
+            const distance = levenshteinDistance(s1, s2);
+            return 1 - (distance / maxLength);
+        }
+        function analyzeWordDifferences(tokensA, tokensB) { /* 이전과 동일 */
+            const lenA = tokensA.length; const lenB = tokensB.length;
+            if (lenA === 0 && lenB === 0) return false; if (lenA === 0 || lenB === 0) return false;
+            let diffCount = 0; let commonLength = Math.min(lenA, lenB);
+            for (let i = 0; i < commonLength; i++) { if (tokensA[i] !== tokensB[i]) diffCount++; }
+            diffCount += Math.abs(lenA - lenB); const maxLen = Math.max(lenA, lenB);
+            return diffCount > 0 && diffCount <= MAX_DIFF_WORDS_FOR_SUBSTITUTION && (diffCount / maxLen) < MAX_DIFF_RATIO_FOR_SUBSTITUTION;
+        }
+
+        function getStatus(textA_original, textB_original) { // 반환값 문자열로 변경
+            let status = "";
+            if (!textA_original && !textB_original) return "양쪽 모두 내용 없음";
+
+            const normExactA = normalizeForExactMatchAndInclusion(textA_original);
+            const normExactB = normalizeForExactMatchAndInclusion(textB_original);
+
+            if (normExactA === normExactB) {
+                status = (textA_original.trim() === textB_original.trim()) ? "동일 (B 기준)" : "표기/구두점 변경 (B 기준)";
+            } else if (normExactB.includes(normExactA)) {
+                status = "B에 단어 추가됨";
+            } else if (normExactA.includes(normExactB)) {
+                status = "B에서 단어 삭제됨";
+            } else {
+                const normSimA_text = normalizeForSimilarityAndTokenization(textA_original);
+                const normSimB_text = normalizeForSimilarityAndTokenization(textB_original);
+                const similarity = calculateSimilarity(normSimA_text, normSimB_text);
+
+                if (similarity >= SIMILARITY_THRESHOLD) {
+                    const tokensA = normSimA_text.length > 0 ? normSimA_text.split(' ') : [];
+                    const tokensB = normSimB_text.length > 0 ? normSimB_text.split(' ') : [];
+                    if (analyzeWordDifferences(tokensA, tokensB)) {
+                        status = "대체어 사용 (B 기준)";
                     } else {
-                        const chunk = unitText.substring(currentPos, chunkPotentialEnd).trim();
-                        currentPos = chunkPotentialEnd;
-                        if (chunk) {
-                            splitUnits.push(chunk);
-                        }
+                        status = `유사하나 복합적 차이 (유사도: ${similarity.toFixed(2)})`;
                     }
-                }
-                
-                return splitUnits;
-            }
-            
-            // 텍스트 라인을 구절 단위로 변환
-            function convertLinesToUnits(textLines) {
-                if (!textLines || textLines.length === 0) return [];
-                
-                const fullText = textLines.map(line => line.trim()).join(" ");
-                const fullTextCleaned = fullText.replace(/\s+/g, ' ').trim();
-                
-                if (!fullTextCleaned) return [];
-                
-                const placeholder = "##DECIMAL_POINT_PLACEHOLDER##";
-                let textWithPlaceholder = fullTextCleaned.replace(/(\d)\.(?=\d)/g, '$1' + placeholder);
-                
-                // 문장/구절 분리 (마침표, 물음표 기준)
-                const rawPhrasesWp = [];
-                let currentPhrase = "";
-                
-                for (let i = 0; i < textWithPlaceholder.length; i++) {
-                    const char = textWithPlaceholder[i];
-                    currentPhrase += char;
-                    
-                    if (char === '.' || char === '?') {
-                        rawPhrasesWp.push(currentPhrase);
-                        currentPhrase = "";
-                    }
-                }
-                
-                // 마지막에 남은 문장이 있으면 추가
-                if (currentPhrase.trim()) {
-                    rawPhrasesWp.push(currentPhrase);
-                }
-                
-                const finalProcessedUnits = [];
-                
-                for (let phraseWp of rawPhrasesWp) {
-                    const phraseWpStripped = phraseWp.trim();
-                    if (!phraseWpStripped) continue;
-                    
-                    const unitCandidateRaw = phraseWpStripped.replace(new RegExp(placeholder, 'g'), ".");
-                    
-                    let originalEndingPunctuation = null;
-                    if (unitCandidateRaw.endsWith('.')) {
-                        originalEndingPunctuation = '.';
-                    } else if (unitCandidateRaw.endsWith('?')) {
-                        originalEndingPunctuation = '?';
-                    }
-                    
-                    let textForLengthCheck = unitCandidateRaw;
-                    if (originalEndingPunctuation) {
-                        textForLengthCheck = unitCandidateRaw.substring(0, unitCandidateRaw.length - originalEndingPunctuation.length);
-                    }
-                    
-                    if (unitCandidateRaw.length > MAX_UNIT_LENGTH) {
-                        const splitSubUnits = splitLongUnit(textForLengthCheck, originalEndingPunctuation);
-                        finalProcessedUnits.push(...splitSubUnits);
-                    } else {
-                        if (!originalEndingPunctuation && !unitCandidateRaw.endsWith('.') && !unitCandidateRaw.endsWith('?')) {
-                            finalProcessedUnits.push(unitCandidateRaw + ".");
-                        } else {
-                            finalProcessedUnits.push(unitCandidateRaw);
-                        }
-                    }
-                }
-                
-                return finalProcessedUnits;
-            }
-            
-            // 파일 전처리 함수
-            function preprocessFileToUnits(content, fileType, fileFormat) {
-                let contentLines = [];
-                
-                if (fileType === 'A') {
-                    if (fileFormat === 'stt') {
-                        logMessage("STT 형식으로 첫 번째 파일 처리 중...");
-                        contentLines = extractContentLinesStt(content);
-                    } else if (fileFormat === 'radio') {
-                        logMessage("라디오 원문 형식으로 첫 번째 파일 처리 중...");
-                        contentLines = extractContentLinesRadio(content);
-                    } else {
-                        logMessage(`오류: 알 수 없는 파일 형식 '${fileFormat}' 입니다.`);
-                        return null;
-                    }
-                } else if (fileType === 'B') {
-                    // 두 번째 파일은 항상 라디오 원문 형식(> 구분)
-                    contentLines = extractContentLinesRadio(content);
                 } else {
-                    logMessage(`오류: 알 수 없는 파일 타입 '${fileType}' 입니다.`);
-                    return null;
-                }
-                
-                return convertLinesToUnits(contentLines);
-            }
-            
-            // SequenceMatcher - difflib 유사 구현
-            function SequenceMatcher(a, b) {
-                this.a = a || [];
-                this.b = b || [];
-                
-                // 최장 공통 부분 시퀀스 찾기
-                this.findMatchingBlocks = function() {
-                    const matches = [];
-                    this._findMatchingBlocks(0, this.a.length, 0, this.b.length, matches);
-                    return matches.sort((a, b) => a.a - b.a);
-                };
-                
-                // 재귀적으로 매칭 블록 찾기
-                this._findMatchingBlocks = function(alo, ahi, blo, bhi, matches) {
-                    const match = this._findLongestMatch(alo, ahi, blo, bhi);
-                    
-                    if (match.size > 0) {
-                        if (alo < match.a && blo < match.b) {
-                            this._findMatchingBlocks(alo, match.a, blo, match.b, matches);
-                        }
-                        
-                        matches.push(match);
-                        
-                        if (match.a + match.size < ahi && match.b + match.size < bhi) {
-                            this._findMatchingBlocks(match.a + match.size, ahi, match.b + match.size, bhi, matches);
-                        }
-                    }
-                };
-                
-                // 최장 일치 찾기
-                this._findLongestMatch = function(alo, ahi, blo, bhi) {
-                    let bestI = alo;
-                    let bestJ = blo;
-                    let bestSize = 0;
-                    
-                    const j2len = {};
-                    
-                    for (let i = alo; i < ahi; i++) {
-                        const newJ2len = {};
-                        const ai = this.a[i];
-                        
-                        for (let j = blo; j < bhi; j++) {
-                            if (ai === this.b[j]) {
-                                const k = newJ2len[j] = (j2len[j - 1] || 0) + 1;
-                                if (k > bestSize) {
-                                    bestSize = k;
-                                    bestI = i - k + 1;
-                                    bestJ = j - k + 1;
-                                }
-                            }
-                        }
-                        
-                        Object.assign(j2len, newJ2len);
-                    }
-                    
-                    return { a: bestI, b: bestJ, size: bestSize };
-                };
-                
-                // opcodes 생성 (difflib와 유사)
-                this.getOpcodes = function() {
-                    if (!this.opcodes) {
-                        this.opcodes = this._getOpcodes();
-                    }
-                    return this.opcodes;
-                };
-                
-                this._getOpcodes = function() {
-                    const opcodes = [];
-                    let i = 0, j = 0;
-                    
-                    const matching_blocks = this.findMatchingBlocks();
-                    matching_blocks.push({ a: this.a.length, b: this.b.length, size: 0 });
-                    
-                    for (const { a, b, size } of matching_blocks) {
-                        // 현재 위치에서 다음 매칭 블록까지의 편집 작업 결정
-                        if (i < a && j < b) {
-                            opcodes.push(['replace', i, a, j, b]);
-                        } else if (i < a) {
-                            opcodes.push(['delete', i, a, j, j]);
-                        } else if (j < b) {
-                            opcodes.push(['insert', i, i, j, b]);
-                        }
-                        
-                        // 일치하는 부분 처리
-                        if (size > 0) {
-                            opcodes.push(['equal', a, a + size, b, b + size]);
-                        }
-                        
-                        i = a + size;
-                        j = b + size;
-                    }
-                    
-                    return opcodes;
-                };
-            }
-            
-            // 기본 CSV 생성 함수
-            function createBasicCSV(unitsA, unitsB) {
-                if (!unitsA || !unitsB) {
-                    updateStatus("전처리 과정에서 오류가 발생하여 CSV 생성을 진행할 수 없습니다.", "error");
-                    return null;
-                }
-                
-                logMessage(`A 파일: ${unitsA.length}개 단위 처리됨`);
-                logMessage(`B 파일: ${unitsB.length}개 단위 처리됨`);
-                
-                // CSV 헤더 (요청한 순서대로)
-                const csvData = [['Unit_A_Num', 'Text_A (Unit)', 'Unit_B_Num', 'Text_B (Unit)', 'Status']];
-                const s = new SequenceMatcher(unitsA, unitsB);
-                
-                for (const [tag, i1, i2, j1, j2] of s.getOpcodes()) {
-                    if (tag === 'equal') {
-                        for (let k = 0; k < i2 - i1; k++) {
-                            const unitANum = i1 + k + 1;
-                            const unitBNum = j1 + k + 1;
-                            const textA = unitsA[i1 + k];
-                            const textB = unitsB[j1 + k];
-                            csvData.push([unitANum, textA, unitBNum, textB, '동일']);
-                        }
-                    } else if (tag === 'replace') {
-                        const lenAChunk = i2 - i1;
-                        const lenBChunk = j2 - j1;
-                        const commonLen = Math.min(lenAChunk, lenBChunk);
-                        
-                        for (let k = 0; k < commonLen; k++) {
-                            const unitANum = i1 + k + 1;
-                            const unitBNum = j1 + k + 1;
-                            const textA = unitsA[i1 + k];
-                            const textB = unitsB[j1 + k];
-                            csvData.push([unitANum, textA, unitBNum, textB, '변경됨']);
-                        }
-                        
-                        if (lenAChunk > commonLen) {
-                            for (let k = commonLen; k < lenAChunk; k++) {
-                                const unitANum = i1 + k + 1;
-                                const textA = unitsA[i1 + k];
-                                csvData.push([unitANum, textA, '', '', 'A에서 삭제됨 (변경 연관)']);
-                            }
-                        }
-                        
-                        if (lenBChunk > commonLen) {
-                            for (let k = commonLen; k < lenBChunk; k++) {
-                                const unitBNum = j1 + k + 1;
-                                const textB = unitsB[j1 + k];
-                                csvData.push(['', '', unitBNum, textB, 'B에 추가됨 (변경 연관)']);
-                            }
-                        }
-                    } else if (tag === 'delete') {
-                        for (let k = 0; k < i2 - i1; k++) {
-                            const unitANum = i1 + k + 1;
-                            const textA = unitsA[i1 + k];
-                            csvData.push([unitANum, textA, '', '', 'A에서 삭제됨']);
-                        }
-                    } else if (tag === 'insert') {
-                        for (let k = 0; k < j2 - j1; k++) {
-                            const unitBNum = j1 + k + 1;
-                            const textB = unitsB[j1 + k];
-                            csvData.push(['', '', unitBNum, textB, 'B에 추가됨']);
-                        }
-                    }
-                }
-                
-                // CSV 문자열로 변환
-                return csvData.map(row => 
-                    row.map(cell => {
-                        // 쉼표나 쌍따옴표가 포함된 셀 처리
-                        if (cell && (cell.toString().includes(',') || cell.toString().includes('"'))) {
-                            return `"${cell.toString().replace(/"/g, '""')}"`;
-                        }
-                        return cell;
-                    }).join(',')
-                ).join('\n');
-            }
-            
-            // Excel 최적화 CSV 생성 함수
-            function createExcelCSV(unitsA, unitsB) {
-                if (!unitsA || !unitsB) {
-                    updateStatus("전처리 과정에서 오류가 발생하여 CSV 생성을 진행할 수 없습니다.", "error");
-                    return null;
-                }
-                
-                logMessage(`A 파일: ${unitsA.length}개 단위 처리됨`);
-                logMessage(`B 파일: ${unitsB.length}개 단위 처리됨`);
-                
-                // Excel 형식 지정을 위한 특수 헤더 추가
-                // 이 헤더는 Excel이 열 너비와 자동 줄바꿈을 처리하도록 지시합니다
-                let excelHeaderRow = 'sep=,\n';
-                
-                // CSV 헤더 (요청한 순서대로 변경)
-                const csvData = [['Unit_A_Num', 'Text_A (Unit)', 'Unit_B_Num', 'Text_B (Unit)', 'Status']];
-                const s = new SequenceMatcher(unitsA, unitsB);
-                
-                for (const [tag, i1, i2, j1, j2] of s.getOpcodes()) {
-                    if (tag === 'equal') {
-                        for (let k = 0; k < i2 - i1; k++) {
-                            const unitANum = i1 + k + 1;
-                            const unitBNum = j1 + k + 1;
-                            const textA = unitsA[i1 + k];
-                            const textB = unitsB[j1 + k];
-                            csvData.push([unitANum, textA, unitBNum, textB, '동일']);
-                        }
-                    } else if (tag === 'replace') {
-                        const lenAChunk = i2 - i1;
-                        const lenBChunk = j2 - j1;
-                        const commonLen = Math.min(lenAChunk, lenBChunk);
-                        
-                        for (let k = 0; k < commonLen; k++) {
-                            const unitANum = i1 + k + 1;
-                            const unitBNum = j1 + k + 1;
-                            const textA = unitsA[i1 + k];
-                            const textB = unitsB[j1 + k];
-                            csvData.push([unitANum, textA, unitBNum, textB, '변경됨']);
-                        }
-                        
-                        if (lenAChunk > commonLen) {
-                            for (let k = commonLen; k < lenAChunk; k++) {
-                                const unitANum = i1 + k + 1;
-                                const textA = unitsA[i1 + k];
-                                csvData.push([unitANum, textA, '', '', 'A에서 삭제됨 (변경 연관)']);
-                            }
-                        }
-                        
-                        if (lenBChunk > commonLen) {
-                            for (let k = commonLen; k < lenBChunk; k++) {
-                                const unitBNum = j1 + k + 1;
-                                const textB = unitsB[j1 + k];
-                                csvData.push(['', '', unitBNum, textB, 'B에 추가됨 (변경 연관)']);
-                            }
-                        }
-                    } else if (tag === 'delete') {
-                        for (let k = 0; k < i2 - i1; k++) {
-                            const unitANum = i1 + k + 1;
-                            const textA = unitsA[i1 + k];
-                            csvData.push([unitANum, textA, '', '', 'A에서 삭제됨']);
-                        }
-                    } else if (tag === 'insert') {
-                        for (let k = 0; k < j2 - j1; k++) {
-                            const unitBNum = j1 + k + 1;
-                            const textB = unitsB[j1 + k];
-                            csvData.push(['', '', unitBNum, textB, 'B에 추가됨']);
-                        }
-                    }
-                }
-                
-                // CSV 문자열로 변환
-                const csvRows = csvData.map(row => 
-                    row.map(cell => {
-                        // 쉼표나 쌍따옴표가 포함된 셀 처리
-                        if (cell && (cell.toString().includes(',') || cell.toString().includes('"'))) {
-                            return `"${cell.toString().replace(/"/g, '""')}"`;
-                        }
-                        return cell;
-                    }).join(',')
-                );
-                
-                // Excel HTML 형식 생성을 위한 HTML 미리보기 추가
-                const excelHtmlPreview = 
-                `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-                <head>
-                <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-                <meta name="ProgId" content="Excel.Sheet">
-                <meta name="Generator" content="Microsoft Excel 15">
-                <style>
-                    table {border-collapse: collapse; width: 100%;}
-                    td, th {border: 1px solid #000000; padding: 5px;}
-                    .colA, .colC {width: 3.5em; text-align: center;}
-                    .colB, .colD {width: 60em; white-space: normal; word-wrap: break-word;}
-                    .colE {width: 10em;}
-                </style>
-                <!--[if gte mso 9]>
-                <xml>
-                    <x:ExcelWorkbook>
-                        <x:ExcelWorksheets>
-                            <x:ExcelWorksheet>
-                                <x:Name>인터뷰 비교 결과</x:Name>
-                                <x:WorksheetOptions>
-                                    <x:DisplayGridlines/>
-                                    <x:DoNotDisplayTitleRow/>
-                                </x:WorksheetOptions>
-                            </x:ExcelWorksheet>
-                        </x:ExcelWorksheets>
-                    </x:ExcelWorkbook>
-                </xml>
-                <![endif]-->
-                </head>
-                <body>
-                <table>
-                    <colgroup>
-                        <col class="colA" style="width: 3.5em;">
-                        <col class="colB" style="width: 60em;">
-                        <col class="colC" style="width: 3.5em;">
-                        <col class="colD" style="width: 60em;">
-                        <col class="colE" style="width: 10em;">
-                    </colgroup>
-                    <tr>
-                        <th class="colA">Unit_A_Num</th>
-                        <th class="colB">Text_A (Unit)</th>
-                        <th class="colC">Unit_B_Num</th>
-                        <th class="colD">Text_B (Unit)</th>
-                        <th class="colE">Status</th>
-                    </tr>
-                </table>
-                <p>참고: 이 HTML 미리보기는 Excel에서 파일을 열었을 때 자동으로 열 너비가 설정되도록 합니다.</p>
-                <p>Status 열은 Excel에서 파일을 연 후 드롭다운으로 변경하실 수 있습니다.</p>
-                </body>
-                </html>`;
-                
-                // HTML 주석으로 숨기고 Excel이 인식할 수 있게 합니다
-                const finalCsvContent = excelHeaderRow + csvRows.join('\n') + 
-                    '\n\n<!--\n' + excelHtmlPreview + '\n-->';
-                
-                return finalCsvContent;
-            }
-            
-            // CSV 비교 및 생성 함수 (형식에 따라 다른 함수 호출)
-            function compareAndCreateCSV(unitsA, unitsB, outputFormat) {
-                if (outputFormat === 'excel') {
-                    return createExcelCSV(unitsA, unitsB);
-                } else {
-                    return createBasicCSV(unitsA, unitsB);
+                    status = `내용 매우 다름 (유사도: ${similarity.toFixed(2)})`;
                 }
             }
-            
-            // 클립보드에 복사 함수
-            function copyToClipboard(text) {
-                // 클립보드 API 사용
-                if (navigator.clipboard && window.isSecureContext) {
-                    navigator.clipboard.writeText(text)
-                        .then(() => {
-                            logMessage("결과 내용이 클립보드에 복사되었습니다!");
-                        })
-                        .catch(err => {
-                            logMessage("클립보드 복사 실패: " + err);
-                            fallbackCopyToClipboard(text);
+            return status;
+        }
+
+        function processFiles() {
+            if (!file1Data.length && file1InputElement.files.length > 0) { statusDiv.textContent = '첫 번째 파일 처리 오류.'; return; }
+            if (!file2Data.length && file2InputElement.files.length > 0) { statusDiv.textContent = '두 번째 파일 처리 오류.'; return; }
+            if (!file1Data.length && !file2Data.length && (!file1InputElement.files.length || !file2InputElement.files.length)) { statusDiv.textContent = '파일을 선택해주세요.'; return; }
+
+            combinedData = [];
+            let bIndex = 0; // B 파일 데이터의 현재 인덱스
+
+            for (let aIndex = 0; aIndex < file1Data.length; aIndex++) {
+                const entryA = file1Data[aIndex];
+                let currentBestMatch = { // 현재 A항목에 대한 B항목의 최적 매칭 정보
+                    bEntry: null,
+                    status: "",
+                    similarityScore: -1, // 매칭 점수 (유사도 또는 상태 우선순위)
+                    originalBIndex: -1 // 원래 B 파일에서의 인덱스
+                };
+
+                if (bIndex < file2Data.length) {
+                    // 1. 현재 bIndex의 B 내용과 A를 직접 비교
+                    const directEntryB = file2Data[bIndex];
+                    const directStatus = getStatus(entryA.content, directEntryB.content);
+                    const directSimilarity = calculateSimilarity(
+                        normalizeForSimilarityAndTokenization(entryA.content),
+                        normalizeForSimilarityAndTokenization(directEntryB.content)
+                    );
+                    
+                    currentBestMatch.bEntry = directEntryB;
+                    currentBestMatch.status = directStatus;
+                    currentBestMatch.similarityScore = SYNC_STATUS_PRIORITY[directStatus] ? (10 - SYNC_STATUS_PRIORITY[directStatus]) : directSimilarity; // 상태 우선순위, 없으면 유사도
+                    currentBestMatch.originalBIndex = bIndex;
+
+                    // 2. 만약 "내용 매우 다름"이거나 유사도가 낮으면, B의 다음 N개 라인 탐색
+                    if (directStatus.startsWith("내용 매우 다름") || directSimilarity < SYNC_MIN_SIMILARITY_FOR_MATCH) {
+                        for (let searchOffset = 1; searchOffset < SYNC_SEARCH_LIMIT && (bIndex + searchOffset) < file2Data.length; searchOffset++) {
+                            const nextEntryB = file2Data[bIndex + searchOffset];
+                            const nextStatus = getStatus(entryA.content, nextEntryB.content);
+                            const nextSimilarity = calculateSimilarity(
+                                normalizeForSimilarityAndTokenization(entryA.content),
+                                normalizeForSimilarityAndTokenization(nextEntryB.content)
+                            );
+                            
+                            const nextMatchScore = SYNC_STATUS_PRIORITY[nextStatus] ? (10 - SYNC_STATUS_PRIORITY[nextStatus]) : nextSimilarity;
+
+                            // 더 좋은 매칭을 찾으면 업데이트 (상태 우선순위가 높거나, 유사도가 높고 최소 기준 충족)
+                            if (nextMatchScore > currentBestMatch.similarityScore && nextSimilarity >= SYNC_MIN_SIMILARITY_FOR_MATCH ) {
+                                currentBestMatch.bEntry = nextEntryB;
+                                currentBestMatch.status = nextStatus;
+                                currentBestMatch.similarityScore = nextMatchScore;
+                                currentBestMatch.originalBIndex = bIndex + searchOffset;
+                                // 매우 좋은 매칭(예: 동일)을 찾으면 탐색 중단 가능
+                                if (SYNC_STATUS_PRIORITY[nextStatus] && SYNC_STATUS_PRIORITY[nextStatus] <= 2) break; 
+                            }
+                        }
+                    }
+                } else { // B 파일이 이미 끝난 경우
+                    currentBestMatch.status = getStatus(entryA.content, ""); // B는 빈 내용으로 간주
+                }
+                
+                // 3. 매칭 결과 처리
+                if (currentBestMatch.originalBIndex !== -1 && currentBestMatch.originalBIndex > bIndex) {
+                    // B의 bIndex 부터 currentBestMatch.originalBIndex - 1 까지는 건너뛴 것
+                    for (let skippedI = bIndex; skippedI < currentBestMatch.originalBIndex; skippedI++) {
+                        combinedData.push({
+                            file1Speaker: "", // A쪽은 비워둠
+                            file1Content: `(A ${aIndex+1}와 동기화 위해 건너뜀)`,
+                            file2Speaker: file2Data[skippedI].speaker,
+                            file2Content: file2Data[skippedI].content,
+                            status: "B 내용 건너뜀 (A와 불일치)",
+                            isSkipped: true
                         });
-                } else {
-                    fallbackCopyToClipboard(text);
+                    }
                 }
+                
+                combinedData.push({
+                    file1Speaker: entryA.speaker,
+                    file1Content: entryA.content,
+                    file2Speaker: currentBestMatch.bEntry ? currentBestMatch.bEntry.speaker : '',
+                    file2Content: currentBestMatch.bEntry ? currentBestMatch.bEntry.content : '',
+                    status: currentBestMatch.status,
+                    isSkipped: false
+                });
+
+                if (currentBestMatch.originalBIndex !== -1) {
+                    bIndex = currentBestMatch.originalBIndex + 1; // 다음 B 탐색 시작 위치 업데이트
+                } else if (bIndex < file2Data.length) { 
+                    // 매칭이 아예 안되었고, B가 현재 위치에 있었다면 (A만 있고 B는 끝난 경우 등)
+                    // 이 경우는 A에 대해 B가 없는 것으로 위에서 currentBestMatch.status가 설정됨
+                    // bIndex를 증가시키지 않거나, 상황에 따라 다르게 처리. 여기서는 위에서 originalBIndex가 -1이면 bIndex는 그대로 둠.
+                    // 하지만, 만약 A만 있고 B가 끝났다면 bIndex는 이미 file2Data.length이므로 아래 루프 안 탐.
+                }
+
+
+            } // A 파일 루프 끝
+
+            // A 파일 처리가 끝난 후 남은 B 파일 내용 처리
+            while (bIndex < file2Data.length) {
+                const entryB_remaining = file2Data[bIndex];
+                combinedData.push({
+                    file1Speaker: "",
+                    file1Content: "",
+                    file2Speaker: entryB_remaining.speaker,
+                    file2Content: entryB_remaining.content,
+                    status: getStatus("", entryB_remaining.content), // A는 빈 내용
+                    isSkipped: false
+                });
+                bIndex++;
             }
-            
-            // 대체 클립보드 복사 방법
-            function fallbackCopyToClipboard(text) {
-                const textArea = document.createElement("textarea");
-                textArea.value = text;
-                
-                // 화면 밖으로 요소 위치 설정
-                textArea.style.position = "fixed";
-                textArea.style.left = "-999999px";
-                textArea.style.top = "-999999px";
-                document.body.appendChild(textArea);
-                textArea.focus();
-                textArea.select();
-                
-                try {
-                    const successful = document.execCommand('copy');
-                    if (successful) {
-                        logMessage("결과 내용이 클립보드에 복사되었습니다!");
-                    } else {
-                        logMessage("클립보드 복사 실패");
-                    }
-                } catch (err) {
-                    logMessage("클립보드 복사 중 오류 발생: " + err);
+
+            displayPreview(combinedData);
+            downloadCsvButton.disabled = false;
+            statusDiv.textContent = `데이터가 처리되었습니다. CSV 다운로드가 가능합니다. (총 ${combinedData.length} 줄)`;
+        }
+
+        function displayPreview(data) {
+            previewTableBody.innerHTML = '';
+            data.forEach(item => {
+                const row = previewTableBody.insertRow();
+                if (item.isSkipped) { // 건너뛴 B행에 대한 스타일
+                    row.classList.add('skipped-row');
                 }
-                
-                document.body.removeChild(textArea);
+                row.insertCell().textContent = item.file1Speaker;
+                row.insertCell().textContent = item.file1Content;
+                row.insertCell().textContent = item.file2Speaker;
+                row.insertCell().textContent = item.file2Content;
+                row.insertCell().textContent = item.status;
+            });
+        }
+
+        function escapeCsvCell(cellData) { /* 이전과 동일 */
+            if (cellData === null || cellData === undefined) return '';
+            let cell = String(cellData);
+            if (cell.includes(',') || cell.includes('"') || cell.includes('\n') || cell.includes('\r')) {
+                cell = '"' + cell.replace(/"/g, '""') + '"';
             }
-            
-            // 다운로드 기능
-            function initiateDownload(content, filename) {
-                const blob = new Blob(['\ufeff' + content], { type: 'text/csv;charset=utf-8;' });
-                
-                if (navigator.msSaveBlob) { // IE 10+
-                    navigator.msSaveBlob(blob, filename);
-                    return true;
-                }
-                
-                const link = document.getElementById('downloadLink');
-                if (window.URL && window.URL.createObjectURL) {
-                    link.href = window.URL.createObjectURL(blob);
-                    link.download = filename;
-                    link.setAttribute('download', filename);
-                    
-                    // 자동 다운로드 시도
-                    setTimeout(function() {
-                        link.click();
-                        // URL 객체 해제
-                        window.URL.revokeObjectURL(link.href);
-                    }, 100);
-                    return true;
-                }
-                else {
-                    logMessage("브라우저가 다운로드 기능을 지원하지 않습니다. 내용 복사 기능을 이용해주세요.");
-                    directCopyBtn.style.display = "block";
-                    return false;
-                }
+            return cell;
+        }
+
+        function downloadCSV() { /* 이전과 동일 (헤더에서 '차이점 상세' 제거) */
+            if (combinedData.length === 0) { statusDiv.textContent = '다운로드할 데이터가 없습니다.'; return; }
+            const header = ['파일1 화자', '파일1 내용', '파일2 화자', '파일2 내용', 'Status (B파일 기준)'];
+            let csvContent = "\uFEFF";
+            csvContent += header.map(escapeCsvCell).join(',') + '\n';
+            combinedData.forEach(item => {
+                const rowData = [
+                    escapeCsvCell(item.file1Speaker),
+                    escapeCsvCell(item.file1Content),
+                    escapeCsvCell(item.file2Speaker),
+                    escapeCsvCell(item.file2Content),
+                    escapeCsvCell(item.status)
+                ];
+                csvContent += rowData.join(',') + '\n';
+            });
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'comparison_sync_result.csv');
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link); URL.revokeObjectURL(url);
             }
-            
-            // 비교 처리 함수
-            async function processFiles() {
-                const file1 = file1Input.files[0];
-                const file2 = file2Input.files[0];
-                
-                if (!file1 || !file2) {
-                    updateStatus("두 파일 모두 선택해주세요.", "error");
-                    return;
-                }
-                
-                // 선택된 파일 형식 확인
-                const fileFormat = formatStt.checked ? 'stt' : 'radio';
-                const outputFormat = outputExcel.checked ? 'excel' : 'csv';
-                
-                try {
-                    updateStatus("파일 처리 중...", "processing");
-                    processBtn.disabled = true;
-                    logArea.innerHTML = "";
-                    downloadLink.style.display = "none";
-                    directCopyBtn.style.display = "none";
-                    excelHint.style.display = "none";
-                    
-                    logMessage("파일 읽기 시작...");
-                    const content1 = await readFile(file1);
-                    const content2 = await readFile(file2);
-                    
-                    logMessage(`첫 번째 파일 전처리 중... (${fileFormat === 'stt' ? 'STT 형식' : '라디오 원문 형식'})`);
-                    const unitsA = preprocessFileToUnits(content1, 'A', fileFormat);
-                    
-                    logMessage("두 번째 파일 전처리 중... (라디오 원문 형식)");
-                    const unitsB = preprocessFileToUnits(content2, 'B', 'radio'); // 두 번째 파일은 항상 라디오 형식
-                    
-                    if (!unitsA || !unitsB) {
-                        updateStatus("파일 전처리 중 오류가 발생했습니다.", "error");
-                        processBtn.disabled = false;
-                        return;
-                    }
-                    
-                    if (unitsA.length === 0 && unitsB.length === 0) {
-                        updateStatus("두 파일 모두에서 처리할 내용을 찾지 못했습니다.", "error");
-                        logMessage("파일 내용과 선택한 형식이 일치하는지 확인해주세요.");
-                        processBtn.disabled = false;
-                        return;
-                    } else if (unitsA.length === 0) {
-                        updateStatus("첫 번째 파일에서 처리할 내용을 찾지 못했습니다.", "error");
-                        logMessage("첫 번째 파일 내용과 선택한 형식이 일치하는지 확인해주세요.");
-                        processBtn.disabled = false;
-                        return;
-                    } else if (unitsB.length === 0) {
-                        updateStatus("두 번째 파일에서 처리할 내용을 찾지 못했습니다.", "error");
-                        logMessage("두 번째 파일이 '> '로 구분된 형식인지 확인해주세요.");
-                        processBtn.disabled = false;
-                        return;
-                    }
-                    
-                    logMessage(`파일 비교 중... (출력 형식: ${outputFormat === 'excel' ? 'Excel 최적화' : '기본 CSV'})`);
-                    generatedCsvContent = compareAndCreateCSV(unitsA, unitsB, outputFormat);
-                    
-                    if (!generatedCsvContent) {
-                        updateStatus("비교 결과 생성에 실패했습니다.", "error");
-                        processBtn.disabled = false;
-                        return;
-                    }
-                    
-                    // 파일명 생성 - 현재 날짜와 시간 포함
-                    const now = new Date();
-                    const dateString = now.toISOString().split('T')[0];
-                    const timeString = now.toTimeString().split(' ')[0].replace(/:/g, '-');
-                    const fileName = `${dateString}_${timeString}_compare_report.csv`;
-                    
-                    // 다운로드 링크 표시
-                    downloadLink.style.display = "block";
-                    downloadLink.textContent = outputFormat === 'excel' ? 'Excel 최적화 CSV 다운로드' : 'CSV 파일 다운로드';
-                    
-                    // 복사 버튼 표시
-                    directCopyBtn.style.display = "block";
-                    
-                    // 다운로드 시작
-                    const downloadSuccess = initiateDownload(generatedCsvContent, fileName);
-                    
-                    updateStatus("비교 완료! 결과 파일을 다운로드하세요.", "success");
-                    logMessage("비교 작업 완료!");
-                    
-                    // Excel 사용법 안내
-                    if (outputFormat === 'excel') {
-                        logMessage("Excel 최적화 파일 생성됨:");
-                        logMessage("- Anum과 Bnum 열 너비: 3.5");
-                        logMessage("- Text A와 Text B 열 너비: 60");
-                        logMessage("- 자동 줄 바꿈 적용됨");
-                        logMessage("- Status 열은 필터링하여 드롭다운으로 사용 가능");
-                        
-                        // Excel 힌트 표시
-                        excelHint.style.display = "block";
-                    }
-                    
-                } catch (error) {
-                    console.error("Error:", error);
-                    updateStatus("처리 중 오류가 발생했습니다: " + error.message, "error");
-                    logMessage("오류: " + error.message);
-                } finally {
-                    processBtn.disabled = false;
-                }
-            }
-            
-            // 버튼 클릭 이벤트 처리
-            processBtn.addEventListener('click', processFiles);
-            
-            // 다운로드 버튼 클릭 이벤트 처리 (추가 이벤트)
-            downloadLink.addEventListener('click', function(e) {
-                // 링크가 작동하지 않는 경우를 위한 백업 처리
-                if (!downloadLink.download || !downloadLink.href) {
-                    e.preventDefault();
-                    if (generatedCsvContent) {
-                        const now = new Date();
-                        const dateString = now.toISOString().split('T')[0];
-                        const timeString = now.toTimeString().split(' ')[0].replace(/:/g, '-');
-                        const fileName = `${dateString}_${timeString}_compare_report.csv`;
-                        initiateDownload(generatedCsvContent, fileName);
-                    } else {
-                        logMessage("다운로드할 내용이 없습니다.");
-                    }
-                }
-            });
-            
-            // 복사 버튼 클릭 이벤트 처리
-            directCopyBtn.addEventListener('click', function() {
-                if (generatedCsvContent) {
-                    copyToClipboard(generatedCsvContent);
-                } else {
-                    logMessage("복사할 내용이 없습니다.");
-                }
-            });
-            
-            // 출력 형식 변경 시 다운로드 버튼 텍스트 업데이트
-            outputCsv.addEventListener('change', function() {
-                if (this.checked) {
-                    downloadLink.textContent = 'CSV 파일 다운로드';
-                }
-            });
-            
-            outputExcel.addEventListener('change', function() {
-                if (this.checked) {
-                    downloadLink.textContent = 'Excel 최적화 CSV 다운로드';
-                }
-            });
-        });
+            statusDiv.textContent = 'CSV 파일이 다운로드되었습니다.';
+        }
+        
+        checkFilesReady();
     </script>
 </body>
 </html>
