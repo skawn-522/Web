@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>텍스트 파일 비교 (B파일 내용 동기화)</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; margin: 20px; background-color: #f4f4f4; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; text-align: center; }
+        .file-input-group { margin-bottom: 20px; }
+        .file-input-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .file-input-group input[type="file"] { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
+        .button-group { text-align: center; margin-top: 20px; }
+        .button-group button { background-color: #007bff; color: white; border: none; padding: 10px 20px; font-size: 16px; margin: 4px 2px; cursor: pointer; border-radius: 4px; }
+        .button-group button:hover { background-color: #0056b3; }
+        .button-group button:disabled { background-color: #ccc; cursor: not-allowed; }
+        #previewTable { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
+        #previewTable th, #previewTable td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 0.85em; word-break: break-all; overflow-wrap: break-word; }
+        #previewTable th { background-color: #f0f0f0; }
+        #status { margin-top: 15px; font-style: italic; color: #555; }
+        .col-speaker { width: 10%; }
+        .col-content { width: 35%; }
+        .col-status { width: 20%; }
+        .skipped-row td { background-color: #f9f9f9; color: #999; } /* 건너뛴 B행 스타일 */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>텍스트 파일 비교 (B파일 내용 동기화)</h1>
+
+        <div class="file-input-group">
+            <label for="file1Input">첫 번째 텍스트 파일 (이름>내용 형식)</label>
+            <input type="file" id="file1Input" accept=".txt">
+        </div>
+
+        <div class="file-input-group">
+            <label for="file2Input">두 번째 텍스트 파일 (이름>내용 형식)</label>
+            <input type="file" id="file2Input" accept=".txt">
+        </div>
+
+        <div class="button-group">
+            <button id="processButton" disabled>데이터 처리 및 미리보기</button>
+            <button id="downloadCsvButton" disabled>CSV 다운로드</button>
+        </div>
+
+        <div id="status"></div>
+
+        <h2>미리보기</h2>
+        <div style="max-height: 600px; overflow-y: auto;">
+            <table id="previewTable">
+                <thead>
+                    <tr>
+                        <th class="col-speaker">파일1 화자</th>
+                        <th class="col-content">파일1 내용</th>
+                        <th class="col-speaker">파일2 화자</th>
+                        <th class="col-content">파일2 내용</th>
+                        <th class="col-status">Status (B파일 기준)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- 데이터가 여기에 동적으로 삽입됩니다 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // 비교 및 동기화 관련 상수
+        const SIMILARITY_THRESHOLD = 0.7; // 대체어 판단을 위한 유사도 임계값 (getStatus 내부에서 사용)
+        const MAX_DIFF_WORDS_FOR_SUBSTITUTION = 3;
+        const MAX_DIFF_RATIO_FOR_SUBSTITUTION = 0.4;
+
+        const SYNC_SEARCH_LIMIT = 5; // 동기화 시 B파일에서 탐색할 최대 라인 수
+        const SYNC_MIN_SIMILARITY_FOR_MATCH = 0.6; // 동기화 매칭을 위한 최소 유사도 (이 값 이상일 때 건너뛰고 매칭)
+                                                 // 너무 낮으면 관련 없는 내용과 매칭될 수 있음.
+        const SYNC_STATUS_PRIORITY = { // 동기화 시 우선순위가 높은 상태 (숫자가 낮을수록 좋음)
+            "동일 (B 기준)": 1,
+            "표기/구두점 변경 (B 기준)": 2,
+            "대체어 사용 (B 기준)": 3,
+            "B에 단어 추가됨": 4,
+            "B에서 단어 삭제됨": 5,
+            // 유사하나 복합적 차이 등은 유사도로 판단
+        };
+
+
+        let file1Data = [];
+        let file2Data = [];
+        let combinedData = [];
+
+        const file1InputElement = document.getElementById('file1Input');
+        const file2InputElement = document.getElementById('file2Input');
+        const processButton = document.getElementById('processButton');
+        const downloadCsvButton = document.getElementById('downloadCsvButton');
+        const previewTableBody = document.querySelector('#previewTable tbody');
+        const statusDiv = document.getElementById('status');
+
+        file1InputElement.addEventListener('change', (event) => handleFile(event, 'file1'));
+        file2InputElement.addEventListener('change', (event) => handleFile(event, 'file2'));
+        processButton.addEventListener('click', processFiles);
+        downloadCsvButton.addEventListener('click', downloadCSV);
+
+        function handleFile(event, fileType) { /* 이전과 동일 */ 
+            const file = event.target.files[0];
+            if (!file) { statusDiv.textContent = `${fileType === 'file1' ? '첫 번째' : '두 번째'} 파일이 선택되지 않았습니다.`; return; }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                const parsedData = parseRawFileContent(content);
+                if (fileType === 'file1') file1Data = parsedData;
+                else file2Data = parsedData;
+                statusDiv.textContent = `${fileType === 'file1' ? '첫 번째' : '두 번째'} 파일 로드 완료.`;
+                checkFilesReady();
+            };
+            reader.onerror = () => { statusDiv.textContent = `${fileType === 'file1' ? '첫 번째' : '두 번째'} 파일 읽기 오류.`; }
+            reader.readAsText(file, 'UTF-8');
+        }
+        function parseRawFileContent(content) { /* 이전과 동일 */
+             return content.split('\n').map(line => {
+                line = line.trim();
+                if (!line) return { speaker: '', content: '' };
+                const parts = line.split('>');
+                return { speaker: parts[0]?.trim() || '', content: parts[1]?.trim() || '' };
+            }).filter(item => item.speaker || item.content);
+        }
+        function checkFilesReady() { /* 이전과 동일 (다운로드 버튼 등 초기화 추가) */
+            if (file1InputElement.files.length > 0 && file2InputElement.files.length > 0) {
+                processButton.disabled = false;
+                statusDiv.textContent = '두 파일이 준비되었습니다. "데이터 처리" 버튼을 누르세요.';
+            } else {
+                processButton.disabled = true;
+                downloadCsvButton.disabled = true;
+                previewTableBody.innerHTML = '';
+                combinedData = [];
+            }
+        }
+
+        function normalizeForExactMatchAndInclusion(str) { /* 이전과 동일 */
+            if (typeof str !== 'string') return "";
+            return str.toLowerCase().replace(/\s+/g, "").replace(/[.,?!~㈜\(\)\[\]\{\}'"“”‘’:]/g, "");
+        }
+        function normalizeForSimilarityAndTokenization(str) { /* 이전과 동일 */
+            if (typeof str !== 'string') return "";
+            return str.toLowerCase().replace(/[.,?!~㈜\(\)\[\]\{\}'"“”‘’:]/g, "").replace(/\s+/g, " ").trim();
+        }
+        function levenshteinDistance(s1, s2) { /* 이전과 동일 */
+            if (!s1 && !s2) return 0;
+            if (!s1) return s2 ? s2.length : 0;
+            if (!s2) return s1.length;
+            const track = Array(s2.length + 1).fill(null).map(() => Array(s1.length + 1).fill(null));
+            for (let i = 0; i <= s1.length; i += 1) track[0][i] = i;
+            for (let j = 0; j <= s2.length; j += 1) track[j][0] = j;
+            for (let j = 1; j <= s2.length; j += 1) {
+                for (let i = 1; i <= s1.length; i += 1) {
+                    const indicator = s1[i - 1] === s2[j - 1] ? 0 : 1;
+                    track[j][i] = Math.min(track[j][i - 1] + 1, track[j - 1][i] + 1, track[j - 1][i - 1] + indicator);
+                }
+            }
+            return track[s2.length][s1.length];
+        }
+        function calculateSimilarity(s1, s2) { /* 이전과 동일 */
+            if ((!s1 || s1.length === 0) && (!s2 || s2.length === 0)) return 1;
+            if (!s1 || s1.length === 0 || !s2 || s2.length === 0) return 0;
+            const maxLength = Math.max(s1.length, s2.length);
+            if (maxLength === 0) return 1;
+            const distance = levenshteinDistance(s1, s2);
+            return 1 - (distance / maxLength);
+        }
+        function analyzeWordDifferences(tokensA, tokensB) { /* 이전과 동일 */
+            const lenA = tokensA.length; const lenB = tokensB.length;
+            if (lenA === 0 && lenB === 0) return false; if (lenA === 0 || lenB === 0) return false;
+            let diffCount = 0; let commonLength = Math.min(lenA, lenB);
+            for (let i = 0; i < commonLength; i++) { if (tokensA[i] !== tokensB[i]) diffCount++; }
+            diffCount += Math.abs(lenA - lenB); const maxLen = Math.max(lenA, lenB);
+            return diffCount > 0 && diffCount <= MAX_DIFF_WORDS_FOR_SUBSTITUTION && (diffCount / maxLen) < MAX_DIFF_RATIO_FOR_SUBSTITUTION;
+        }
+
+        function getStatus(textA_original, textB_original) { // 반환값 문자열로 변경
+            let status = "";
+            if (!textA_original && !textB_original) return "양쪽 모두 내용 없음";
+
+            const normExactA = normalizeForExactMatchAndInclusion(textA_original);
+            const normExactB = normalizeForExactMatchAndInclusion(textB_original);
+
+            if (normExactA === normExactB) {
+                status = (textA_original.trim() === textB_original.trim()) ? "동일 (B 기준)" : "표기/구두점 변경 (B 기준)";
+            } else if (normExactB.includes(normExactA)) {
+                status = "B에 단어 추가됨";
+            } else if (normExactA.includes(normExactB)) {
+                status = "B에서 단어 삭제됨";
+            } else {
+                const normSimA_text = normalizeForSimilarityAndTokenization(textA_original);
+                const normSimB_text = normalizeForSimilarityAndTokenization(textB_original);
+                const similarity = calculateSimilarity(normSimA_text, normSimB_text);
+
+                if (similarity >= SIMILARITY_THRESHOLD) {
+                    const tokensA = normSimA_text.length > 0 ? normSimA_text.split(' ') : [];
+                    const tokensB = normSimB_text.length > 0 ? normSimB_text.split(' ') : [];
+                    if (analyzeWordDifferences(tokensA, tokensB)) {
+                        status = "대체어 사용 (B 기준)";
+                    } else {
+                        status = `유사하나 복합적 차이 (유사도: ${similarity.toFixed(2)})`;
+                    }
+                } else {
+                    status = `내용 매우 다름 (유사도: ${similarity.toFixed(2)})`;
+                }
+            }
+            return status;
+        }
+
+        function processFiles() {
+            if (!file1Data.length && file1InputElement.files.length > 0) { statusDiv.textContent = '첫 번째 파일 처리 오류.'; return; }
+            if (!file2Data.length && file2InputElement.files.length > 0) { statusDiv.textContent = '두 번째 파일 처리 오류.'; return; }
+            if (!file1Data.length && !file2Data.length && (!file1InputElement.files.length || !file2InputElement.files.length)) { statusDiv.textContent = '파일을 선택해주세요.'; return; }
+
+            combinedData = [];
+            let bIndex = 0; // B 파일 데이터의 현재 인덱스
+
+            for (let aIndex = 0; aIndex < file1Data.length; aIndex++) {
+                const entryA = file1Data[aIndex];
+                let currentBestMatch = { // 현재 A항목에 대한 B항목의 최적 매칭 정보
+                    bEntry: null,
+                    status: "",
+                    similarityScore: -1, // 매칭 점수 (유사도 또는 상태 우선순위)
+                    originalBIndex: -1 // 원래 B 파일에서의 인덱스
+                };
+
+                if (bIndex < file2Data.length) {
+                    // 1. 현재 bIndex의 B 내용과 A를 직접 비교
+                    const directEntryB = file2Data[bIndex];
+                    const directStatus = getStatus(entryA.content, directEntryB.content);
+                    const directSimilarity = calculateSimilarity(
+                        normalizeForSimilarityAndTokenization(entryA.content),
+                        normalizeForSimilarityAndTokenization(directEntryB.content)
+                    );
+                    
+                    currentBestMatch.bEntry = directEntryB;
+                    currentBestMatch.status = directStatus;
+                    currentBestMatch.similarityScore = SYNC_STATUS_PRIORITY[directStatus] ? (10 - SYNC_STATUS_PRIORITY[directStatus]) : directSimilarity; // 상태 우선순위, 없으면 유사도
+                    currentBestMatch.originalBIndex = bIndex;
+
+                    // 2. 만약 "내용 매우 다름"이거나 유사도가 낮으면, B의 다음 N개 라인 탐색
+                    if (directStatus.startsWith("내용 매우 다름") || directSimilarity < SYNC_MIN_SIMILARITY_FOR_MATCH) {
+                        for (let searchOffset = 1; searchOffset < SYNC_SEARCH_LIMIT && (bIndex + searchOffset) < file2Data.length; searchOffset++) {
+                            const nextEntryB = file2Data[bIndex + searchOffset];
+                            const nextStatus = getStatus(entryA.content, nextEntryB.content);
+                            const nextSimilarity = calculateSimilarity(
+                                normalizeForSimilarityAndTokenization(entryA.content),
+                                normalizeForSimilarityAndTokenization(nextEntryB.content)
+                            );
+                            
+                            const nextMatchScore = SYNC_STATUS_PRIORITY[nextStatus] ? (10 - SYNC_STATUS_PRIORITY[nextStatus]) : nextSimilarity;
+
+                            // 더 좋은 매칭을 찾으면 업데이트 (상태 우선순위가 높거나, 유사도가 높고 최소 기준 충족)
+                            if (nextMatchScore > currentBestMatch.similarityScore && nextSimilarity >= SYNC_MIN_SIMILARITY_FOR_MATCH ) {
+                                currentBestMatch.bEntry = nextEntryB;
+                                currentBestMatch.status = nextStatus;
+                                currentBestMatch.similarityScore = nextMatchScore;
+                                currentBestMatch.originalBIndex = bIndex + searchOffset;
+                                // 매우 좋은 매칭(예: 동일)을 찾으면 탐색 중단 가능
+                                if (SYNC_STATUS_PRIORITY[nextStatus] && SYNC_STATUS_PRIORITY[nextStatus] <= 2) break; 
+                            }
+                        }
+                    }
+                } else { // B 파일이 이미 끝난 경우
+                    currentBestMatch.status = getStatus(entryA.content, ""); // B는 빈 내용으로 간주
+                }
+                
+                // 3. 매칭 결과 처리
+                if (currentBestMatch.originalBIndex !== -1 && currentBestMatch.originalBIndex > bIndex) {
+                    // B의 bIndex 부터 currentBestMatch.originalBIndex - 1 까지는 건너뛴 것
+                    for (let skippedI = bIndex; skippedI < currentBestMatch.originalBIndex; skippedI++) {
+                        combinedData.push({
+                            file1Speaker: "", // A쪽은 비워둠
+                            file1Content: `(A ${aIndex+1}와 동기화 위해 건너뜀)`,
+                            file2Speaker: file2Data[skippedI].speaker,
+                            file2Content: file2Data[skippedI].content,
+                            status: "B 내용 건너뜀 (A와 불일치)",
+                            isSkipped: true
+                        });
+                    }
+                }
+                
+                combinedData.push({
+                    file1Speaker: entryA.speaker,
+                    file1Content: entryA.content,
+                    file2Speaker: currentBestMatch.bEntry ? currentBestMatch.bEntry.speaker : '',
+                    file2Content: currentBestMatch.bEntry ? currentBestMatch.bEntry.content : '',
+                    status: currentBestMatch.status,
+                    isSkipped: false
+                });
+
+                if (currentBestMatch.originalBIndex !== -1) {
+                    bIndex = currentBestMatch.originalBIndex + 1; // 다음 B 탐색 시작 위치 업데이트
+                } else if (bIndex < file2Data.length) { 
+                    // 매칭이 아예 안되었고, B가 현재 위치에 있었다면 (A만 있고 B는 끝난 경우 등)
+                    // 이 경우는 A에 대해 B가 없는 것으로 위에서 currentBestMatch.status가 설정됨
+                    // bIndex를 증가시키지 않거나, 상황에 따라 다르게 처리. 여기서는 위에서 originalBIndex가 -1이면 bIndex는 그대로 둠.
+                    // 하지만, 만약 A만 있고 B가 끝났다면 bIndex는 이미 file2Data.length이므로 아래 루프 안 탐.
+                }
+
+
+            } // A 파일 루프 끝
+
+            // A 파일 처리가 끝난 후 남은 B 파일 내용 처리
+            while (bIndex < file2Data.length) {
+                const entryB_remaining = file2Data[bIndex];
+                combinedData.push({
+                    file1Speaker: "",
+                    file1Content: "",
+                    file2Speaker: entryB_remaining.speaker,
+                    file2Content: entryB_remaining.content,
+                    status: getStatus("", entryB_remaining.content), // A는 빈 내용
+                    isSkipped: false
+                });
+                bIndex++;
+            }
+
+            displayPreview(combinedData);
+            downloadCsvButton.disabled = false;
+            statusDiv.textContent = `데이터가 처리되었습니다. CSV 다운로드가 가능합니다. (총 ${combinedData.length} 줄)`;
+        }
+
+        function displayPreview(data) {
+            previewTableBody.innerHTML = '';
+            data.forEach(item => {
+                const row = previewTableBody.insertRow();
+                if (item.isSkipped) { // 건너뛴 B행에 대한 스타일
+                    row.classList.add('skipped-row');
+                }
+                row.insertCell().textContent = item.file1Speaker;
+                row.insertCell().textContent = item.file1Content;
+                row.insertCell().textContent = item.file2Speaker;
+                row.insertCell().textContent = item.file2Content;
+                row.insertCell().textContent = item.status;
+            });
+        }
+
+        function escapeCsvCell(cellData) { /* 이전과 동일 */
+            if (cellData === null || cellData === undefined) return '';
+            let cell = String(cellData);
+            if (cell.includes(',') || cell.includes('"') || cell.includes('\n') || cell.includes('\r')) {
+                cell = '"' + cell.replace(/"/g, '""') + '"';
+            }
+            return cell;
+        }
+
+        function downloadCSV() { /* 이전과 동일 (헤더에서 '차이점 상세' 제거) */
+            if (combinedData.length === 0) { statusDiv.textContent = '다운로드할 데이터가 없습니다.'; return; }
+            const header = ['파일1 화자', '파일1 내용', '파일2 화자', '파일2 내용', 'Status (B파일 기준)'];
+            let csvContent = "\uFEFF";
+            csvContent += header.map(escapeCsvCell).join(',') + '\n';
+            combinedData.forEach(item => {
+                const rowData = [
+                    escapeCsvCell(item.file1Speaker),
+                    escapeCsvCell(item.file1Content),
+                    escapeCsvCell(item.file2Speaker),
+                    escapeCsvCell(item.file2Content),
+                    escapeCsvCell(item.status)
+                ];
+                csvContent += rowData.join(',') + '\n';
+            });
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'comparison_sync_result.csv');
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link); URL.revokeObjectURL(url);
+            }
+            statusDiv.textContent = 'CSV 파일이 다운로드되었습니다.';
+        }
+        
+        checkFilesReady();
+    </script>
+</body>
+</html>
